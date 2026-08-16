@@ -6,7 +6,7 @@ Allow user to upload their db structure
 
 This project was built with [Lovable](https://lovable.dev).
 
-**Live app**: https://laraveltruss.lovable.app
+**Live app**: https://laravel-truss-clone.ovable.app
 
 ## Build with Lovable
 
