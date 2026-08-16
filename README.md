@@ -1,14 +1,20 @@
-# Welcome to your Lovable project
+# Schema Scope
+
+A scrollable, zoomable ER diagram of your real schema, rendered right inside your Laravel app. Structure only, never data.
+
+Allow user to upload their db structure
 
 This project was built with [Lovable](https://lovable.dev).
 
+**Live app**: https://laraveltruss.lovable.app
+
 ## Build with Lovable
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/cd60062e-6d41-4488-9816-b6245787c162).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+- **Stay in sync**: every change made in Lovable is committed straight to this repository.
+- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
 
 ## Development
 
@@ -20,10 +26,3 @@ cd <repository-name>
 npm i
 npm run dev
 ```
-
-## Built with
-
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
