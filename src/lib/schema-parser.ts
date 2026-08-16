@@ -153,7 +153,11 @@ export function parseSqlSchema(input: string): Schema {
       const rest = (colMatch[2] ?? "").trim();
       const typeMatch = /^([A-Za-z_][A-Za-z0-9_ ]*(?:\([^)]*\))?(?:\s*\[\])?)/.exec(rest);
       let type = (typeMatch?.[1] ?? rest).trim();
-      type = type.replace(/\s+(NOT|NULL|DEFAULT|PRIMARY|UNIQUE|REFERENCES|GENERATED|AUTO_INCREMENT|COMMENT|CHECK|COLLATE|CHARACTER)$/i, "");
+      type = type
+        .split(
+          /\s+(?=NOT\b|NULL\b|DEFAULT\b|PRIMARY\b|UNIQUE\b|REFERENCES\b|GENERATED\b|AUTO_INCREMENT\b|COMMENT\b|CHECK\b|COLLATE\b|CHARACTER\b|IDENTITY\b)/i,
+        )[0]!
+        .trim();
 
       const col: Column = {
         name: colName,
