@@ -4,7 +4,7 @@ export type Column = {
   nullable: boolean;
   primary: boolean;
   unique: boolean;
-  fk?: { table: string; column: string };
+  fk?: { table: string; column: string } | undefined;
 };
 
 export type Table = {
