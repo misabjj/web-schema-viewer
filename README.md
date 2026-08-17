@@ -1,6 +1,6 @@
 Web Schema Viewer is a browser-based database schema viewer.
 
-Explore your Laravel database structure with a scrollable, zoomable ER diagram. See tables, columns, keys, and relationships in a clean visual map.
+Explore your database structure with a scrollable, zoomable ER diagram. See tables, columns, keys, and relationships in a clean visual map.
 
 No rows. No secrets. No data leaves your browser. Only database structure is shown.
 
