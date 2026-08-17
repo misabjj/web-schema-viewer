@@ -1,28 +1,21 @@
-# Schema Scope
+Web Schema Viewer is a browser-based database schema viewer.
 
-A scrollable, zoomable ER diagram of your real schema, rendered right inside your Laravel app. Structure only, never data.
+Explore your Laravel database structure with a scrollable, zoomable ER diagram. See tables, columns, keys, and relationships in a clean visual map.
 
-Allow user to upload their db structure
+No rows. No secrets. No data leaves your browser. Only database structure is shown.
 
-This project was built with [Lovable](https://lovable.dev).
+Inspired by [laravel-truss](https://github.com/albertoarena/laravel-truss).
 
-**Live app**: https://laravel-truss-clone.lovable.app
+## Features
 
-## Build with Lovable
+- Interactive ER diagram in your browser
+- Zoom and pan across large schemas
+- View tables, columns, keys, and relationships
+- Upload your database structure
+- Laravel type support
+- Export and share schema views
+- Structure only — never database records
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/cd60062e-6d41-4488-9816-b6245787c162).
+Built with [Lovable](https://lovable.dev).
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
-```
+**Live app:** https://web-schema-viewer.lovable.app
