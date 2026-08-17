@@ -1,46 +1,36 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Schema } from "@/lib/schema-parser";
-import { Minus, Plus, Maximize2, KeyRound, Link2 } from "lucide-react";
+import type { Schema, Table } from "@/lib/schema-parser";
+import { Minus, Plus, Maximize2, KeyRound, Link2, Crosshair, Copy, Download } from "lucide-react";
+import {
+  HEADER_H,
+  ROW_H,
+  TABLE_WIDTH,
+  layoutTables,
+  tableHeight,
+  type Positions,
+} from "@/lib/er-layout";
+import { displayType, download, tableCsv, tableMarkdown } from "@/lib/schema-export";
 
-const TABLE_WIDTH = 260;
-const HEADER_H = 38;
-const ROW_H = 24;
-const PAD = 10;
+export type CanvasExport = { positions: Positions };
 
-export type Positions = Record<string, { x: number; y: number }>;
-
-export function layoutTables(schema: Schema): Positions {
-  const deg = new Map<string, number>();
-  for (const t of schema.tables) deg.set(t.name, 0);
-  for (const r of schema.relations) {
-    deg.set(r.fromTable, (deg.get(r.fromTable) ?? 0) + 1);
-    deg.set(r.toTable, (deg.get(r.toTable) ?? 0) + 1);
-  }
-  const sorted = [...schema.tables].sort(
-    (a, b) => (deg.get(b.name) ?? 0) - (deg.get(a.name) ?? 0),
-  );
-  const cols = Math.max(1, Math.ceil(Math.sqrt(sorted.length)));
-  const pos: Positions = {};
-  const colHeights = new Array(cols).fill(60);
-  sorted.forEach((t, i) => {
-    const c = i % cols;
-    const h = HEADER_H + t.columns.length * ROW_H + PAD * 2;
-    pos[t.name] = { x: 60 + c * (TABLE_WIDTH + 90), y: colHeights[c] };
-    colHeights[c] += h + 70;
-  });
-  return pos;
-}
-
-function tableHeight(count: number) {
-  return HEADER_H + count * ROW_H + PAD;
-}
-
-export default function ErCanvas({ schema }: { schema: Schema }) {
+export default function ErCanvas({
+  schema,
+  laravelTypes,
+  onFocus,
+  onPositions,
+}: {
+  schema: Schema;
+  laravelTypes: boolean;
+  onFocus: (table: string) => void;
+  onPositions?: (p: Positions) => void;
+}) {
   const [positions, setPositions] = useState<Positions>(() => layoutTables(schema));
   const [scale, setScale] = useState(0.9);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [active, setActive] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ table: string; x: number; y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const moved = useRef(false);
   const drag = useRef<
     | { type: "pan"; startX: number; startY: number; ox: number; oy: number }
     | { type: "table"; name: string; startX: number; startY: number; tx: number; ty: number }
@@ -48,10 +38,16 @@ export default function ErCanvas({ schema }: { schema: Schema }) {
   >(null);
 
   useEffect(() => {
-    setPositions(layoutTables(schema));
+    const next = layoutTables(schema);
+    setPositions(next);
     setOffset({ x: 0, y: 0 });
     setScale(0.9);
+    setMenu(null);
   }, [schema]);
+
+  useEffect(() => {
+    onPositions?.(positions);
+  }, [positions, onPositions]);
 
   const bounds = useMemo(() => {
     let maxX = 0;
@@ -73,8 +69,11 @@ export default function ErCanvas({ schema }: { schema: Schema }) {
 
   const onPointerDown = (e: React.PointerEvent) => {
     const target = e.target as HTMLElement;
+    if (target.closest("[data-menu]")) return;
     const tableEl = target.closest<HTMLElement>("[data-table]");
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    moved.current = false;
+    setMenu(null);
     if (tableEl) {
       const name = tableEl.dataset["table"]!;
       const p = positions[name]!;
@@ -91,6 +90,7 @@ export default function ErCanvas({ schema }: { schema: Schema }) {
     if (!d) return;
     const dx = (e.clientX - d.startX) / scale;
     const dy = (e.clientY - d.startY) / scale;
+    if (Math.abs(dx) + Math.abs(dy) > 3) moved.current = true;
     if (d.type === "pan") {
       setOffset({ x: d.ox + dx * scale, y: d.oy + dy * scale });
     } else {
@@ -98,17 +98,22 @@ export default function ErCanvas({ schema }: { schema: Schema }) {
     }
   };
 
-  const endDrag = () => {
+  const onPointerUp = (e: React.PointerEvent) => {
+    const d = drag.current;
     drag.current = null;
+    if (!d || d.type !== "table" || moved.current) return;
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setMenu({ table: d.name, x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
-  const fit = () => {
+  const fit = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
     const s = Math.min(el.clientWidth / bounds.w, el.clientHeight / bounds.h, 1.4);
     setScale(Math.max(0.15, s * 0.95));
     setOffset({ x: 0, y: 0 });
-  };
+  }, [bounds]);
 
   const edges = useMemo(() => {
     return schema.relations
@@ -143,6 +148,10 @@ export default function ErCanvas({ schema }: { schema: Schema }) {
     return s;
   }, [active, schema]);
 
+  const menuTable: Table | undefined = menu
+    ? schema.tables.find((t) => t.name === menu.table)
+    : undefined;
+
   return (
     <div className="relative h-full w-full overflow-hidden bg-canvas">
       <div
@@ -151,8 +160,8 @@ export default function ErCanvas({ schema }: { schema: Schema }) {
         onWheel={onWheel}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
+        onPointerUp={onPointerUp}
+        onPointerCancel={() => (drag.current = null)}
       >
         <div
           style={{
@@ -225,16 +234,12 @@ export default function ErCanvas({ schema }: { schema: Schema }) {
                         <span className="size-3 shrink-0" />
                       )}
                       <span
-                        className={
-                          c.primary
-                            ? "truncate text-foreground"
-                            : "truncate text-foreground/80"
-                        }
+                        className={c.primary ? "truncate text-foreground" : "truncate text-foreground/80"}
                       >
                         {c.name}
                       </span>
                       <span className="ml-auto truncate text-[10px] text-muted-foreground">
-                        {c.type.toLowerCase()}
+                        {displayType(c.type, laravelTypes, c.primary)}
                         {c.nullable ? "?" : ""}
                       </span>
                     </div>
@@ -245,6 +250,58 @@ export default function ErCanvas({ schema }: { schema: Schema }) {
           })}
         </div>
       </div>
+
+      {menu && menuTable ? (
+        <div
+          data-menu
+          className="absolute z-20 w-52 overflow-hidden rounded-lg border border-border bg-popover shadow-panel"
+          style={{ left: Math.min(menu.x, (containerRef.current?.clientWidth ?? 0) - 220), top: menu.y }}
+        >
+          <div className="border-b border-border px-3 py-2 font-mono text-[11px] text-muted-foreground">
+            {menuTable.name}
+          </div>
+          <MenuItem
+            icon={<Crosshair className="size-3.5" />}
+            label="Focus this table"
+            onClick={() => {
+              onFocus(menuTable.name);
+              setMenu(null);
+            }}
+          />
+          <MenuItem
+            icon={<Copy className="size-3.5" />}
+            label="Copy JSON"
+            onClick={() => {
+              void navigator.clipboard.writeText(JSON.stringify(menuTable, null, 2));
+              setMenu(null);
+            }}
+          />
+          <MenuItem
+            icon={<Download className="size-3.5" />}
+            label="Download JSON"
+            onClick={() => {
+              download(`${menuTable.name}.json`, JSON.stringify(menuTable, null, 2), "application/json");
+              setMenu(null);
+            }}
+          />
+          <MenuItem
+            icon={<Download className="size-3.5" />}
+            label="Download CSV"
+            onClick={() => {
+              download(`${menuTable.name}.csv`, tableCsv(menuTable, laravelTypes), "text/csv");
+              setMenu(null);
+            }}
+          />
+          <MenuItem
+            icon={<Download className="size-3.5" />}
+            label="Download Markdown"
+            onClick={() => {
+              download(`${menuTable.name}.md`, tableMarkdown(menuTable, laravelTypes), "text/markdown");
+              setMenu(null);
+            }}
+          />
+        </div>
+      ) : null}
 
       <div className="absolute bottom-4 right-4 flex items-center gap-1 rounded-full border border-border bg-card/90 px-2 py-1.5 shadow-panel backdrop-blur">
         <button
@@ -274,8 +331,28 @@ export default function ErCanvas({ schema }: { schema: Schema }) {
       </div>
 
       <div className="pointer-events-none absolute bottom-4 left-4 font-mono text-[11px] text-muted-foreground">
-        drag canvas to pan · drag a table to move · ctrl/⌘ + scroll to zoom
+        drag to pan · click a table for actions · ctrl/⌘ + scroll to zoom
       </div>
     </div>
+  );
+}
+
+function MenuItem({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-foreground transition-colors hover:bg-table-header"
+    >
+      {icon}
+      {label}
+    </button>
   );
 }
