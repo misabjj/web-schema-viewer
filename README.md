@@ -14,7 +14,7 @@ Inspired by [laravel-truss](https://github.com/albertoarena/laravel-truss).
 - Upload your database structure
 - Laravel type support
 - Export and share schema views
-- Structure only — never database records
+- Nothing leaves your browser
 
 Built with [Lovable](https://lovable.dev).
 
